@@ -153,7 +153,7 @@ bool Parser::parseInput(std::pair<std::vector<double>,std::vector<double>>& res)
 void visualize(std::vector<double>& input){
 	for(int i=0;i<28;++i){
 		for(int j=0; j<28; ++j){
-			std::cout << (input[i*28+j]>0?1:0) << ' ';
+			std::cout << (input[i*28+j]>0?1:0);
 		}
 		std::cout << std::endl;
 	}
@@ -164,6 +164,10 @@ struct Connection{
 	Connection(){
 		static auto f = std::bind(std::uniform_real_distribution<double>(0.0,1.0),std::default_random_engine(time(0)));
 		weight = f();
+		delta = 0;
+	}
+	Connection(double w){
+		weight = w;
 		delta = 0;
 	}
 };
@@ -178,6 +182,7 @@ class Neuron{
 		std::vector<Connection> weight;
 	public:
 		Neuron(int index, int outputSize);
+		Neuron(int index, std::string& s);
 		std::vector<double> feedForward(double in);
 		void print(std::ostream& f_out);
 		void print();
@@ -192,6 +197,7 @@ class Layer{
 		std::vector<double> gradient;
 	public:
 		Layer(int index, int inputSize, int outputSize);
+		Layer(int index, std::istream& f_in);
 		std::vector<double> feedForward(std::vector<double>& input);
 		void accumulate(std::vector<double>& dst, std::vector<double>& add);
 		std::vector<double> calcGradient(std::vector<double>& next);
@@ -205,7 +211,9 @@ class Net{
 	private:
 		std::vector<Layer> net;
 	public:
+		Net(); //EMPTY NETWORK
 		Net(std::vector<int>& topology);
+		Net(std::string file); //LOAD
 		std::vector<double> feedForward(std::vector<double>& input);
 		void backProp(std::vector<double>& target);
 		void print(std::ostream& f_out);
@@ -222,7 +230,17 @@ Neuron::Neuron(int index, int outputSize)
 		//	weight.push_back(Connection());
 		//}
 }
-
+Neuron::Neuron(int index, std::string& s)
+	:index(index)
+{
+	outputSize = 0;
+	std::stringstream ss(s);
+	double w;
+	while(ss >> w){
+		weight.push_back(Connection(w));
+		++outputSize;
+	}
+}
 std::vector<double> Neuron::feedForward(double in){
 	val = in;
 	std::vector<double> res;
@@ -233,11 +251,12 @@ std::vector<double> Neuron::feedForward(double in){
 }
 
 void Neuron::print(std::ostream& f_out){
-	f_out << '[';
+	//f_out << '[';
 	for(auto &w : weight){
 		f_out << w.weight << ' ';
 	}
-	f_out << ']' << std::endl;
+	//f_out << ']' << std::endl;
+	f_out << std::endl;
 }
 
 void Neuron::print(){
@@ -271,7 +290,22 @@ Layer::Layer(int index, int inputSize, int outputSize)
 			layer.push_back(Neuron(i,outputSize));
 		}
 }
-
+Layer::Layer(int index, std::istream& f_in):
+	index(index)
+{
+	std::string s;
+	int i=0;
+	while(std::getline(f_in,s)){
+		if(s=="<") //beginning
+			continue;
+		if(s==">")
+			break;
+		layer.push_back(Neuron(i,s));
+		++i;
+	}
+	outputSize = layer.front().outputSize;
+	inputSize = layer.size();
+}
 std::vector<double> Layer::calcGradient(std::vector<double>& next){
 	gradient.clear();
 	for(uint i=0;i<next.size();++i){
@@ -332,10 +366,9 @@ void Layer::update(Layer& prev){
 	}*/
 }
 void Layer::print(std::ostream& f_out){
-	f_out << "LAYER <";
+	f_out << "<" << std::endl;
 	for(auto& n : layer){
 		n.print(f_out);
-		f_out << ' ';
 	}
 	f_out << ">" << std::endl;
 }
@@ -364,10 +397,27 @@ void Net::backProp(std::vector<double>& target){
 		net[i].update(net[i-1]);
 	}
 }
+Net::Net(){
+}
 Net::Net(std::vector<int>& topology){
 	for(uint i=0;i<topology.size();++i){
 		net.push_back(Layer(i,topology[i], (i == topology.size()-1)?0:topology[i+1]));
 	}
+}
+Net::Net(std::string file){
+	std::ifstream f_in(file);
+	std::string s;
+	int index = 0;
+	while(std::getline(f_in,s)){ // 1 line = node
+		if(s == "<"){
+			net.push_back(Layer(index, f_in));
+			++index;
+			continue;
+		}
+		if(s == ">")
+			continue;
+	}
+	f_in.close();
 }
 void Net::print(std::ostream& f_out){
 	for(auto& l : net){
@@ -420,26 +470,21 @@ void Net::report_2(std::vector<double>& target){
 	std::cout << targetVal << ':' <<  guess.first << '(' << guess.second << ')' << "WRONG : " << wrong << std::endl;
 }
 
-int main(int argc, char* argv[]){
-	
-	/* *** SPECIFY CONSTANTS *** */
-	if(argc == 3){
-		ETA = std::atof(argv[1]);
-		ALPHA = std::atof(argv[2]);
-	}
-	
-	/* *** TRAINING PHASE *** */
-	const char trainDat[] = "train/trainData";
-	const char trainLab[] = "train/trainLabel";
-	Parser p(trainDat,trainLab);
 
-	auto topology = p.parseTopology();
+void train(Net& net){
+	/* *** TRAINING PHASE *** */
+
 	//std::ifstream f_in("training.txt");
 	//auto topology = parseTopology(f_in);
 	//auto inNum = topology.front();
 	//auto outNum = topology.back();
-	Net net(topology);
+	const char trainDat[] = "train/trainData";
+	const char trainLab[] = "train/trainLabel";
+	Parser p(trainDat,trainLab);
+	auto topology = p.parseTopology();
+	net = Net(topology);
 	net.print();
+
 
 	auto input = std::make_pair(std::vector<double>(), std::vector<double>());	
 	while(1){
@@ -455,10 +500,16 @@ int main(int argc, char* argv[]){
 		net.backProp(input.second);
 		//break;
 	}
+	std::ofstream weight_map("weight_map.txt");
+	net.print(weight_map);
 
-	std::cout << "TRAINING COMPLETE!!";
-	/* *** TESTING PHASE *** */
+	std::cout << "---- TRAINING COMPLETE!! ----" << std::endl;
+}
 
+void test(Net& net){
+
+	/* *** TEST NET *** */
+	auto input = std::make_pair(std::vector<double>(), std::vector<double>());	
 	const char testDat[] = "train/testData";
 	const char testLab[] = "train/testLabel";
 	Parser p_2(testDat,testLab);	
@@ -472,8 +523,22 @@ int main(int argc, char* argv[]){
 			break;
 	}
 
-	std::ofstream weight_map("weight_map.txt");
-	net.print(weight_map);
-	//
+}
+
+int main(int argc, char* argv[]){
+	
+	/* *** SPECIFY CONSTANTS *** */
+	if(argc == 3){
+		ETA = std::atof(argv[1]);
+		ALPHA = std::atof(argv[2]);
+	}
+
+#ifdef TRAIN
+	Net net;
+	train(net);
+#else
+	Net net("weight_map.txt");	
+#endif
+	test(net);
 	return 0;
 }
