@@ -1,8 +1,8 @@
 #include "Utility.h"
 
 /* ***** Utility Functions ***** */
-double ETA = 0.15;
-double ALPHA = 0.3;
+double ETA = 0.25;
+double ALPHA = 0.2;
 
 template<typename T>
 void print(std::vector<T> v){
@@ -133,7 +133,7 @@ bool Parser::parseInput(std::pair<std::vector<double>,std::vector<double>>& res)
 void visualize(std::vector<double>& input){
 	for(int i=0;i<28;++i){
 		for(int j=0; j<28; ++j){
-			std::cout << (input[i*28+j]>0?1:0);
+			std::cout << (input[i*28+j]>0.5?1:0);
 		}
 		std::cout << std::endl;
 	}

@@ -3,17 +3,22 @@
 #define TRAIN
 int main(int argc, char* argv[]){
 	/* *** SPECIFY CONSTANTS *** */
-	if(argc == 3){
-		ETA = std::atof(argv[1]);
-		ALPHA = std::atof(argv[2]);
-	}
+	Net net;
 
 #ifdef TRAIN
-	Net net;
+	if(argc == 3){
+		//LEARNING RATE
+		ETA = std::atof(argv[1]);
+		//MOMENTUM
+		ALPHA = std::atof(argv[2]);
+	}
 	train(net);
+	net.save("net.txt");
 #else //LOAD
-	Net net("weight_map.txt");	
+	net.load("net.txt");
 #endif
+
+
 	test(net);
 	return 0;
 }

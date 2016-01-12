@@ -26,7 +26,76 @@ Net::Net(std::vector<int>& topology){
 	}
 }
 Net::Net(std::string file){
-	std::ifstream f_in(file);
+	load(file);
+}
+void Net::print(std::ostream& f_out){
+	for(auto& l : net){
+		l.print(f_out);
+	}
+}
+void Net::print(){
+	print(std::cout);
+}
+
+std::vector<double> Net::getResults(){
+	std::vector<double> res;
+	for(auto& n : net.back().layer){
+		res.push_back(n.val);
+	}
+	return res;
+}
+void Net::report(std::pair<std::vector<double>,std::vector<double>>& input){
+	static int count = 0;
+	std::cout << '[' << ++count << ']';
+	std::cout << "OUTPUT : ";
+	for(auto &o : input.second){
+		std::cout << o << ' ';
+	}
+	std::cout << " | ";
+	std::cout << "RESULT : ";
+
+	for(auto& n : getResults()){
+		std::cout << n << ' ';
+	}
+	std::cout << std::endl;
+}
+
+bool wrongFlag = false;
+void Net::report_2(std::vector<double>& target){
+	static int wrong=0;
+	int targetVal;
+
+	for(int i=0;i<10;++i){
+		if(target[i] > 0.5){
+			targetVal=i;
+			break;
+		}
+	}
+	auto res = getResults();
+	auto guess = std::make_pair(0,0.0); //num, probability
+	for(int i=0;i<10;++i){
+		if(res[i] > guess.second){
+			guess.first = i;
+			guess.second = res[i];
+		}
+	}
+	if(guess.first != targetVal){
+		++wrong;
+		wrongFlag = true;
+	}
+	std::cout << targetVal << ':' <<  guess.first << '(' << guess.second << ')' << "WRONG : " << wrong << std::endl;
+}
+
+
+void Net::save(std::string fileName){
+	std::ofstream f_out(fileName);
+	print(f_out);
+	f_out.close();
+}
+
+void Net::load(std::string fileName){
+	net.clear();
+	std::ifstream f_in(fileName);
 	std::string s;
 	int index = 0;
 	while(std::getline(f_in,s)){ // 1 line = node
@@ -40,57 +109,12 @@ Net::Net(std::string file){
 	}
 	f_in.close();
 }
-void Net::print(std::ostream& f_out){
-	for(auto& l : net){
-		l.print(f_out);
-	}
-}
-void Net::print(){
-	print(std::cout);
-}
-void Net::report(std::pair<std::vector<double>,std::vector<double>>& input){
-	static int count = 0;
-	std::cout << '[' << ++count << ']';
-	std::cout << "OUTPUT : ";
-	for(auto &o : input.second){
-		std::cout << o << ' ';
-	}
-	std::cout << " | ";
-	std::cout << "RESULT : ";
-	for(auto&n : net.back().layer){
-		std::cout << n.val << ' ';
-	}
-	std::cout << std::endl;
-}
-
-void Net::report_2(std::vector<double>& target){
-	static int wrong=0;
-	int targetVal;
-
-	for(int i=0;i<10;++i){
-		if(target[i] > 0.5){
-			targetVal=i;
-			break;
-		}
-	}
-	auto& result = net.back().layer;
-	auto guess = std::make_pair(0,0.0); //num, probability
-	for(int i=0;i<10;++i){
-		if(result[i].val > guess.second){
-			guess.first = i;
-			guess.second = result[i].val;
-		}
-	}
-	if(guess.first != targetVal)
-		++wrong;
-	std::cout << targetVal << ':' <<  guess.first << '(' << guess.second << ')' << "WRONG : " << wrong << std::endl;
-}
-
 /* *** OTHER FUNCTIONS *** */
 
 void train(Net& net){
 	/* *** TRAINING PHASE *** */
 
+	std::cout << "---- TRAINING START!! ----" << std::endl;
 	//std::ifstream f_in("training.txt");
 	//auto topology = parseTopology(f_in);
 	//auto inNum = topology.front();
@@ -100,9 +124,7 @@ void train(Net& net){
 	Parser p(trainDat,trainLab);
 	auto topology = p.parseTopology();
 	net = Net(topology);
-	net.print();
-
-
+	//net.print();
 	auto input = std::make_pair(std::vector<double>(), std::vector<double>());	
 	while(1){
 		bool success = p.parseInput(input);
@@ -117,12 +139,12 @@ void train(Net& net){
 		net.backProp(input.second);
 		//break;
 	}
-	std::ofstream weight_map("weight_map.txt");
-	net.print(weight_map);
+
 
 	std::cout << "---- TRAINING COMPLETE!! ----" << std::endl;
 }
 
+bool continueFlag = false; //do not continue
 void test(Net& net){
 
 	/* *** TEST NET *** */
@@ -135,9 +157,14 @@ void test(Net& net){
 		visualize(input.first);
 		net.feedForward(input.first);
 		net.report_2(input.second);
-		std::cin >> next;
-		if(next == 'n' || next == 'N')
-			break;
+		if(wrongFlag && !continueFlag){
+			wrongFlag = false;
+			std::cin >> next;
+			if(next == 'n' || next == 'N')
+				break;
+			if(next == 'c')
+				continueFlag = true;
+		}
 	}
 
 }
