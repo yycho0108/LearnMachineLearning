@@ -20,11 +20,12 @@ int main(int argc, char* argv[]){
 	if(argc >1)
 		lim = std::atoi(argv[1]);
 	std::ofstream f_out("training.txt");
-	f_out << "2 4 1" << std::endl;
+	f_out << "2 4 2" << std::endl;
 	for(int i=0;i<lim;++i){
 		auto left = createData();
 		auto right = createData();
-		auto res = (left*right);
-		f_out << double(left) << ' ' << double(right) << ' '<< double(res) << std::endl;
+		//auto res = (left*right);
+		f_out << left << ' ' << right << ' ' << right << ' ' << left << std::endl;
+		//f_out << double(left) << ' ' << double(right) << ' '<< double(res) << std::endl;
 	}
 }

@@ -3,3 +3,6 @@
 *.out
 *.o
 record
+train
+*.swp
+weight_map.txt

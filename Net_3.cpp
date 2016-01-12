@@ -8,10 +8,14 @@
 #include <sstream>
 #include <cassert>
 
-#define ETA (.15)
-#define ALPHA (.50)
+//#define ETA (.10)
+//#define ALPHA (.30)
 
+double ETA = .10, ALPHA = .30;
+
+#define IMGSIZE (28*28)
 /* ***** Utility Functions ***** */
+
 typedef std::string str;
 typedef unsigned uint;
 template<typename T>
@@ -24,10 +28,13 @@ void print(std::vector<T> v){
 }
 
 double transfer(double in){
-	return tanh(in);
+	return 1 / (1 + exp(-in));
+	//return tanh(in);
 }
 double transferPrime(double in){
-	return 1.0-in*in;
+	auto tmp = exp(-in);
+	return tmp/((1+tmp)*(1+tmp));
+	//return 1.0-in*in;
 }
 
 
@@ -70,6 +77,7 @@ std::vector<int> parseTopology(std::ifstream& f_in){
 
 }
 
+
 std::pair<std::vector<double>,std::vector<double>> parseInput(std::ifstream& f_in, int in, int out, bool& success){
 	double a;
 	std::vector<double> input;
@@ -91,7 +99,66 @@ std::pair<std::vector<double>,std::vector<double>> parseInput(std::ifstream& f_i
 	return std::make_pair(input,output);
 }
 
-/* ***** Class Declarations ***** */
+//FOR MNIST DATA SET
+//
+struct Parser{
+	using BYTE = unsigned char;
+	std::ifstream f_data,f_label;
+	Parser(const char dat[], const char lab[]){
+		f_data.open(dat);
+		f_label.open(lab);
+		//skip metadata
+		BYTE buf[16];
+		f_data.read((char*)buf,16);
+		f_label.read((char*)buf,8);
+		//skip metadata
+	}
+	~Parser(){
+		f_data.close();
+		f_label.close();
+	}
+	std::vector<int> parseTopology();
+	bool parseInput(std::pair<std::vector<double>,std::vector<double>>& res);
+
+};
+
+std::vector<int> Parser::parseTopology(){
+	return std::vector<int>({IMGSIZE,100,10});
+}
+
+bool Parser::parseInput(std::pair<std::vector<double>,std::vector<double>>& res){
+	if(res.first.size() != IMGSIZE)
+		res.first.resize(IMGSIZE);
+	if(res.second.size() != 10)
+		res.second.resize(10);
+	//in = IMGSIZE
+	//out = 10
+	
+	BYTE buf_dat[IMGSIZE];
+	BYTE buf_lab;
+
+	f_data.read((char*)buf_dat,IMGSIZE);
+	f_label.read((char*)&buf_lab,1);
+
+	for(int i=0;i<IMGSIZE;++i){
+		res.first[i] = (buf_dat[i] / 256.0);
+	}
+	for(int i=0;i<10;++i){
+		res.second[i]=0.0;
+	}
+	res.second[buf_lab] = 1.0; // probability 100%, others 0%
+	return f_data && f_label;
+	//return std::make_pair(res_dat,res_lab);
+}
+void visualize(std::vector<double>& input){
+	for(int i=0;i<28;++i){
+		for(int j=0; j<28; ++j){
+			std::cout << (input[i*28+j]>0?1:0) << ' ';
+		}
+		std::cout << std::endl;
+	}
+}
+	/* ***** Class Declarations ***** */
 struct Connection{
 	double weight,delta;
 	Connection(){
@@ -112,6 +179,7 @@ class Neuron{
 	public:
 		Neuron(int index, int outputSize);
 		std::vector<double> feedForward(double in);
+		void print(std::ostream& f_out);
 		void print();
 };
 
@@ -129,6 +197,7 @@ class Layer{
 		std::vector<double> calcGradient(std::vector<double>& next);
 		std::vector<double> calcGradient(Layer& next);
 		void update(Layer& prev);
+		void print(std::ostream& f_out);
 		void print();
 };
 
@@ -139,8 +208,10 @@ class Net{
 		Net(std::vector<int>& topology);
 		std::vector<double> feedForward(std::vector<double>& input);
 		void backProp(std::vector<double>& target);
+		void print(std::ostream& f_out);
 		void print();
 		void report(std::pair<std::vector<double>,std::vector<double>>& input);
+		void report_2(std::vector<double>& target);
 };
 /* ***** Class Definitions ***** */
 
@@ -161,12 +232,17 @@ std::vector<double> Neuron::feedForward(double in){
 	return res; 
 }
 
-void Neuron::print(){
-	std::cout << '[';
+void Neuron::print(std::ostream& f_out){
+	f_out << '[';
 	for(auto &w : weight){
-		std::cout << w.weight << ' ';
+		f_out << w.weight << ' ';
 	}
-	std::cout << ']' << std::endl;
+	f_out << ']' << std::endl;
+}
+
+void Neuron::print(){
+	this->print(std::cout);
+	print(std::cout);
 }
 //Layer
 
@@ -255,13 +331,17 @@ void Layer::update(Layer& prev){
 		neuron.weight[i].weight += newDelta;
 	}*/
 }
-void Layer::print(){
-	std::cout << "LAYER <";
+void Layer::print(std::ostream& f_out){
+	f_out << "LAYER <";
 	for(auto& n : layer){
-		n.print();
-		std::cout << ' ';
+		n.print(f_out);
+		f_out << ' ';
 	}
-	std::cout << ">" << std::endl;
+	f_out << ">" << std::endl;
+}
+
+void Layer::print(){
+	print(std::cout);
 }
 //Net
 
@@ -289,20 +369,22 @@ Net::Net(std::vector<int>& topology){
 		net.push_back(Layer(i,topology[i], (i == topology.size()-1)?0:topology[i+1]));
 	}
 }
-void Net::print(){
+void Net::print(std::ostream& f_out){
 	for(auto& l : net){
-		l.print();
+		l.print(f_out);
 	}
 }
-
+void Net::print(){
+	print(std::cout);
+}
 void Net::report(std::pair<std::vector<double>,std::vector<double>>& input){
 	static int count = 0;
 	std::cout << '[' << ++count << ']';
-	std::cout << "INPUT : ";
-	for(auto &d : input.first){
-		std::cout << d << ' ';
-	}
-	std::cout << " | ";
+	//std::cout << "INPUT : ";
+	//for(auto &d : input.first){
+	//	std::cout << d << ' ';
+	//}
+	//std::cout << " | ";
 	std::cout << "OUTPUT : ";
 	for(auto &o : input.second){
 		std::cout << o << ' ';
@@ -315,25 +397,83 @@ void Net::report(std::pair<std::vector<double>,std::vector<double>>& input){
 	std::cout << std::endl;
 }
 
+void Net::report_2(std::vector<double>& target){
+	static int wrong=0;
+	int targetVal;
 
-int main(){
-	std::ifstream f_in("training.txt");
-	auto topology = parseTopology(f_in);
-	auto inNum = topology.front();
-	auto outNum = topology.back();
+	for(int i=0;i<10;++i){
+		if(target[i] > 0.5){
+			targetVal=i;
+			break;
+		}
+	}
+	auto& result = net.back().layer;
+	auto guess = std::make_pair(0,0.0); //num, probability
+	for(int i=0;i<10;++i){
+		if(result[i].val > guess.second){
+			guess.first = i;
+			guess.second = result[i].val;
+		}
+	}
+	if(guess.first != targetVal)
+		++wrong;
+	std::cout << targetVal << ':' <<  guess.first << '(' << guess.second << ')' << "WRONG : " << wrong << std::endl;
+}
+
+int main(int argc, char* argv[]){
+	
+	/* *** SPECIFY CONSTANTS *** */
+	if(argc == 3){
+		ETA = std::atof(argv[1]);
+		ALPHA = std::atof(argv[2]);
+	}
+	
+	/* *** TRAINING PHASE *** */
+	const char trainDat[] = "train/trainData";
+	const char trainLab[] = "train/trainLabel";
+	Parser p(trainDat,trainLab);
+
+	auto topology = p.parseTopology();
+	//std::ifstream f_in("training.txt");
+	//auto topology = parseTopology(f_in);
+	//auto inNum = topology.front();
+	//auto outNum = topology.back();
 	Net net(topology);
-	net.print();	
+	net.print();
+
+	auto input = std::make_pair(std::vector<double>(), std::vector<double>());	
 	while(1){
-		bool success = true;
-		auto input = parseInput(f_in, inNum,outNum,success);
+		bool success = p.parseInput(input);
+		//visualize(input.first);
+		//print(input.first);
+		//auto input = parseInput(f_in, inNum,outNum,success);
 		if(!success)
 			break;
 		net.feedForward(input.first);
-		net.report(input);
+		//net.report(input);
 		//net.print();
 		net.backProp(input.second);
+		//break;
 	}
-	
+
+	std::cout << "TRAINING COMPLETE!!";
+	/* *** TESTING PHASE *** */
+
+	const char testDat[] = "train/testData";
+	const char testLab[] = "train/testLabel";
+	Parser p_2(testDat,testLab);	
+	char next;
+	while(p_2.parseInput(input)){
+		visualize(input.first);
+		net.feedForward(input.first);
+		net.report_2(input.second);
+		std::cin >> next;
+		if(next == 'n' || next == 'N')
+			break;
+	}
+
+	std::ofstream weight_map("weight_map.txt");
+	net.print(weight_map);
 	//
 	return 0;
 }
