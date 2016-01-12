@@ -1,8 +1,16 @@
+#TEMPORARY FILES
 *.~
 *~
+*.swp
+
+# REFERENCEs
+train
+record
+record_2
+weight_map.txt
+
+#Executables
 *.out
 *.o
-record
-train
-*.swp
-weight_map.txt
+#main Executable
+main
