@@ -3,6 +3,7 @@
 
 #include "Neuron.h"
 #include "Layer.h"
+#include "Utility.h"
 
 class Net{
 	private:
@@ -22,6 +23,10 @@ class Net{
 		// I/O
 		void save(std::string fileName);
 		void load(std::string fileName);
+		//Convenience
+		//
+		void setInput(std::vector<double>& input);
+		void feedForward();
 };
 
 void train(Net& net);

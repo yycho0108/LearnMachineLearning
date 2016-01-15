@@ -11,7 +11,7 @@ Neuron.o: Neuron.cpp
 	$(CC) -c $(FLAGS) $(INCS) $^ -o $@ $(LIBS)
 Layer.o: Neuron.o Utility.o Layer.cpp
 	$(CC) -c $(FLAGS) $(INCS) $^ -o $@ $(LIBS)
-Net.o: Neuron.o Layer.o Net.cpp
+Net.o: Neuron.o Layer.o Utility.o Net.cpp
 	$(CC) -c $(FLAGS) $(INCS) $^ -o $@ $(LIBS)
 Utility.o : Utility.cpp
 	$(CC) -c $(FLAGS) $(INCS) $^ -o $@ $(LIBS)

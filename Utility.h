@@ -41,4 +41,6 @@ struct Parser{
 };
 
 void visualize(std::vector<double>& input);
+
+void diminish(); //DECREASE ALPHA
 #endif

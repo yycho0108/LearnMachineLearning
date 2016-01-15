@@ -11,7 +11,17 @@ std::vector<double> Layer::feedForward(std::vector<double>& input){
 	}
 	return transfer(res);
 }
-
+Layer& Layer::feedForward(Layer& input){
+	for(uint i=0; i<layer.size(); ++i){
+		auto& neuron = layer[i];
+		double sum = 0.0;
+		for(int j=0;j<input.inputSize;++j){
+			sum += input.layer[j].val * input.layer[j].weight[i].weight;
+		}
+		neuron.val = transfer(sum);
+	}
+	return *this;
+}
 void Layer::accumulate(std::vector<double>& dst, std::vector<double>& add){
 	assert(dst.size() == add.size());
 	for(uint i=0;i<dst.size();++i){
@@ -65,14 +75,16 @@ std::vector<double> Layer::calcGradient(Layer& next){
 	return gradient;
 }
 
+double LAMBDA = 0.001;
 void Layer::update(Layer& prev){
 	for(int i=0; i<inputSize;++i){
-		auto &n = layer[i];
+		//auto &n = layer[i];
 		auto &g = gradient[i];
 		for(int j=0;j<prev.inputSize;++j){
 			auto &neuron = prev.layer[j];
-			double oldDelta = neuron.weight[n.index].delta;
+			double oldDelta = neuron.weight[i].delta;
 			double newDelta = ETA * neuron.val * g + ALPHA * oldDelta;
+			//- ETA*LAMBDA*neuron.weight[i].weight; //regularization
 			neuron.weight[i].delta = newDelta;
 			neuron.weight[i].weight += newDelta;
 		}

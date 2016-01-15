@@ -1,8 +1,8 @@
 #include "Utility.h"
 
 /* ***** Utility Functions ***** */
-double ETA = 0.25;
-double ALPHA = 0.2;
+double ETA = 0.15;
+double ALPHA = 0.3;
 
 template<typename T>
 void print(std::vector<T> v){
@@ -139,4 +139,6 @@ void visualize(std::vector<double>& input){
 	}
 }
 
-
+void diminish(){
+	ALPHA *= 0.8;
+}

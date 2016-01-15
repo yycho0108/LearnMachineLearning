@@ -16,6 +16,7 @@ class Layer{
 		Layer(int index, int inputSize, int outputSize);
 		Layer(int index, std::istream& f_in);
 		std::vector<double> feedForward(std::vector<double>& input);
+		Layer& feedForward(Layer& input);
 		void accumulate(std::vector<double>& dst, std::vector<double>& add);
 		std::vector<double> calcGradient(std::vector<double>& next);
 		std::vector<double> calcGradient(Layer& next);

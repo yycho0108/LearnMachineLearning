@@ -3,7 +3,8 @@
 #define TRAIN
 int main(int argc, char* argv[]){
 	/* *** SPECIFY CONSTANTS *** */
-	Net net;
+	std::vector<int> topology({28*28, 75, 10});
+	Net net(topology);
 
 #ifdef TRAIN
 	if(argc == 3){
@@ -12,7 +13,10 @@ int main(int argc, char* argv[]){
 		//MOMENTUM
 		ALPHA = std::atof(argv[2]);
 	}
-	train(net);
+	for(int i=0;i<1;++i){
+		train(net);
+	}	
+
 	net.save("net.txt");
 #else //LOAD
 	net.load("net.txt");

@@ -7,14 +7,25 @@ std::vector<double> Net::feedForward(std::vector<double>& input){
 		next = l.feedForward(next);
 	}
 	return next;	
+}
 
+void Net::setInput(std::vector<double>& input){
+	for(uint i=0; i<input.size(); ++i){
+		net.front().layer[i].val = input[i];
+	}
+}
+void Net::feedForward(){
+	for(uint i=1; i<net.size(); ++i){
+		Layer& prev = net[i-1];
+		net[i].feedForward(prev);
+	}
 }
 void Net::backProp(std::vector<double>& target){
 	net.back().calcGradient(target);
 	for(int i = net.size() - 2; i > 0; --i){
 		net[i].calcGradient(net[i+1]);
 	}
-	for(int i = net.size() - 1; i > 0; --i){
+	for(uint i=1; i < net.size(); ++i){
 		net[i].update(net[i-1]);
 	}
 }
@@ -122,18 +133,26 @@ void train(Net& net){
 	const char trainDat[] = "train/trainData";
 	const char trainLab[] = "train/trainLabel";
 	Parser p(trainDat,trainLab);
-	auto topology = p.parseTopology();
-	net = Net(topology);
+	//auto topology = p.parseTopology();
+	//net = Net(topology);
+	
 	//net.print();
 	auto input = std::make_pair(std::vector<double>(), std::vector<double>());	
+	int index = 0;
 	while(1){
+		++index;
+		if((index%1000) == 0)
+			std::cout << index << ' ' << std::endl;
 		bool success = p.parseInput(input);
 		//visualize(input.first);
 		//print(input.first);
 		//auto input = parseInput(f_in, inNum,outNum,success);
 		if(!success)
 			break;
-		net.feedForward(input.first);
+		//net.feedForward(input.first);
+		net.setInput(input.first);
+		net.feedForward();
+		
 		//net.report(input);
 		//net.print();
 		net.backProp(input.second);
@@ -142,7 +161,9 @@ void train(Net& net){
 
 
 	std::cout << "---- TRAINING COMPLETE!! ----" << std::endl;
+	diminish();
 }
+
 
 bool continueFlag = false; //do not continue
 void test(Net& net){
