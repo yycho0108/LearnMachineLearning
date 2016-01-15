@@ -1,12 +1,13 @@
 #include "Net.h"
 
-#define TRAIN
+//#define TRAIN
+
 int main(int argc, char* argv[]){
 	/* *** SPECIFY CONSTANTS *** */
-	std::vector<int> topology({28*28, 75, 10});
-	Net net(topology);
 
 #ifdef TRAIN
+	std::vector<int> topology({28*28, 75, 10});
+	Net net(topology);
 	if(argc == 3){
 		//LEARNING RATE
 		ETA = std::atof(argv[1]);
@@ -19,6 +20,7 @@ int main(int argc, char* argv[]){
 
 	net.save("net.txt");
 #else //LOAD
+	Net net;
 	net.load("net.txt");
 #endif
 

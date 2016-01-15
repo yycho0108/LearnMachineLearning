@@ -11,7 +11,7 @@
 /* ***** Utility Functions ***** */
 typedef std::string str;
 typedef unsigned uint;
-extern double ETA, ALPHA;
+extern double ETA, ALPHA; // GLOBALS
 
 template<typename T>
 void print(std::vector<T> v);
