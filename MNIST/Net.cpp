@@ -167,7 +167,7 @@ void train(Net& net){
 
 bool continueFlag = false; //do not continue
 void test(Net& net){
-
+	std::cout << "---- TEST START ---- " << std::endl;
 	/* *** TEST NET *** */
 	auto input = std::make_pair(std::vector<double>(), std::vector<double>());	
 	const char testDat[] = "train/testData";
@@ -187,5 +187,19 @@ void test(Net& net){
 				continueFlag = true;
 		}
 	}
+	
+	/*
+	 * auto _test = std::vector<double>();
+	auto _res = std::vector<double>({0,0.0002,0.0002,0,0,.7627,0,.0169,0,0});
+	for(int i=0;i<28;++i){
+		for(int j=0;j<28;++j){
+			_test.push_back(0);
+		}
+	}
+	net.feedForward(_test);
+	net.report_2(_res);
+	*/
+	
+	std::cout << "---- TEST COMPLETE!! ---- " << std::endl;
 
 }

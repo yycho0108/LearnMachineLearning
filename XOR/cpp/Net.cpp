@@ -25,8 +25,8 @@ double transfer(double in){
 	return 1 / (1 +exp(-in));
 }
 double transferDerivative(double in){
-	//return 1-in*in;
-	return exp(-in) / (pow((1+exp(-in)),2));
+	return 1-in*in;
+	//return exp(-in) / (pow((1+exp(-in)),2));
 }
 std::vector<double> transfer(std::vector<double>& in){
 	std::vector<double> res;
